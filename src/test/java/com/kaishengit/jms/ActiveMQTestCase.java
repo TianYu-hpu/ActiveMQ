@@ -15,6 +15,8 @@ public class ActiveMQTestCase {
         ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
         //创建Connection
         Connection connection = connectionFactory.createConnection();
+        //开始连接
+        connection.start();
         //创建session
         //客户端手动签收
         //Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
@@ -25,10 +27,15 @@ public class ActiveMQTestCase {
         MessageProducer messageProducer = session.createProducer(destination);
         //设置持久化模式为不持久化
         messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-        //创建消息
-        TextMessage textMessage = session.createTextMessage("Hello, MQ");
-        //发送消息
-        messageProducer.send(textMessage);
+        //消息优先级
+        for(int i = 4;i<=9;i++) {
+            //创建消息
+            TextMessage textMessage = session.createTextMessage("Hello, MQ" + i);
+            //发送消息
+            //messageProducer.send(textMessage);
+            messageProducer.send(textMessage, DeliveryMode.PERSISTENT, i, 0);
+
+        }
         //释放资源
         messageProducer.close();
         //手动提交或回滚事务
