@@ -242,4 +242,98 @@ public class ActiveMQTestCase {
         session.close();
         connection.close();
     }
+
+    /**
+     * 发送主题
+     * @throws JMSException
+     */
+    @Test
+    public void sendMessageToTopic() throws JMSException {
+        //创建ConnectionFactory
+        String brokerUrl = "tcp://localhost:61616";
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
+        //创建Connection
+        Connection connection = connectionFactory.createConnection();
+        //开始连接
+        connection.start();
+        //创建session
+        //客户端手动签收
+        //Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        //创建destination
+        Destination destination = session.createTopic("topic");
+        //创建消息生产者
+        MessageProducer messageProducer = session.createProducer(destination);
+        //设置持久化模式为不持久化
+        messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+        //消息优先级
+        for(int i = 4;i<=9;i++) {
+            //创建消息
+            TextMessage textMessage = session.createTextMessage("Hello, MQ" + i);
+            //发送消息
+            //messageProducer.send(textMessage);
+            messageProducer.send(textMessage, DeliveryMode.PERSISTENT, i, 0);
+        }
+        //释放资源
+        messageProducer.close();
+        //手动提交或回滚事务
+        //session.commit();
+        //session.rollback();
+        session.close();
+        connection.close();
+    }
+
+    /**
+     * 消费主题
+     * @throws JMSException
+     * @throws IOException
+     */
+    @Test
+    public void consumerMessageFromTopic() throws JMSException, IOException {
+        //创建connectionFactory
+        String brokerUrl = "tcp://localhost:61616";
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
+        //定义重试策略
+        RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
+        //重试次数
+        redeliveryPolicy.setMaximumRedeliveries(10);
+        //初始重试时间延迟
+        redeliveryPolicy.setInitialRedeliveryDelay(3000);
+        //重试间隔时间
+        redeliveryPolicy.setRedeliveryDelay(10000);
+        connectionFactory.setRedeliveryPolicy(redeliveryPolicy);
+        //创建连接
+        Connection connection = connectionFactory.createConnection();
+
+        //开启连接
+        connection.start();
+        //创建回话
+        //客户端手动签收
+        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        //目的地
+        Destination destination = session.createTopic("topic");
+        //创建消费者
+        MessageConsumer messageConsumer = session.createConsumer(destination);
+        //消费消息,如果这个消息队列里面有新的消息则会执行onMessage方法
+        messageConsumer.setMessageListener(new MessageListener() {
+            @Override
+            public void onMessage(Message message) {
+                TextMessage textMessage = (TextMessage) message;
+                try {
+                    String text = textMessage.getText();
+                    if("Hello, MQ8".equals(text)) {
+                        throw new JMSException("故意抛出的异常");
+                    }
+                    System.out.println(textMessage.getText());
+                } catch (JMSException e) {
+                    throw new RuntimeException("运行时异常");
+                }
+            }
+        });
+        System.in.read();
+        //释放资源
+        messageConsumer.close();
+        session.close();
+        connection.close();
+    }
 }
