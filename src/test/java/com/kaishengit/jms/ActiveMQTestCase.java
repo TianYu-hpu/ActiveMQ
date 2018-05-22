@@ -1,6 +1,7 @@
 package com.kaishengit.jms;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.RedeliveryPolicy;
 import org.junit.Test;
 
 import javax.jms.*;
@@ -197,9 +198,19 @@ public class ActiveMQTestCase {
     public void consumerMessageFromQueue3() throws JMSException, IOException {
         //创建connectionFactory
         String brokerUrl = "tcp://localhost:61616";
-        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
+        //定义重试策略
+        RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
+        //重试次数
+        redeliveryPolicy.setMaximumRedeliveries(10);
+        //初始重试时间延迟
+        redeliveryPolicy.setInitialRedeliveryDelay(3000);
+        //重试间隔时间
+        redeliveryPolicy.setRedeliveryDelay(10000);
+        connectionFactory.setRedeliveryPolicy(redeliveryPolicy);
         //创建连接
         Connection connection = connectionFactory.createConnection();
+
         //开启连接
         connection.start();
         //创建回话
