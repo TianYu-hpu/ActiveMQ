@@ -23,6 +23,8 @@ public class ActiveMQTestCase {
         Destination destination = session.createQueue("queue");
         //创建消息生产者
         MessageProducer messageProducer = session.createProducer(destination);
+        //设置持久化模式为不持久化
+        messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
         //创建消息
         TextMessage textMessage = session.createTextMessage("Hello, MQ");
         //发送消息
